@@ -33,7 +33,7 @@ def get_user_by_email(email):
     return session.query(User).filter_by(email=email).first()
 
 def confirm_action(prompt:str) -> bool:
-    return input(f"\n{prompt} (y/n): ").lower().strip() == 'yes'
+    return input(f"\n{prompt} (yes/no): ").lower().strip() == 'yes'
 
 #crud ops
 def add_user():
@@ -59,10 +59,10 @@ def add_task():
     session.add(Task(title=title, description=description, user_id=user.id))
     session.commit()
     print(f"Task added to database {title}: {description}")
+
 #query
 def query_users():
-    users = session.query(User).all()
-    for user in users:
+    for user in session.query(User).all():
         print(f"ID: {user.id}, Name: {user.name},Email: {user.email}")
 
 def query_tasks():
@@ -75,6 +75,61 @@ def query_tasks():
     for task in user.task:
         print(f"Task ID: {task.id}, Title: {task.title}, Description: {task.description}")
         
+def update_user():
+    email = input("Enter the email of the user to update: ")
+    user = get_user_by_email(email)
+    if not user:
+        print("No user found with this email.")
+        return
+    new_name = input("Enter the new name (leave blank to keep current): ")
+    if new_name:
+        user.name = new_name
+    new_email = input("Enter the new email (leave blank to keep current): ")
+    if new_email:
+        user.email = new_email
+    session.commit()
+    print("User updated successfully.")
+
+#deleteing user and task
+def delete_user():
+    email = input("Enter the email of the user to delete: ")
+    user = get_user_by_email(email)
+    if not user:
+        print("No user found with this email.")
+        return
+    if confirm_action(f"Are you sure you want to delete user {user.name} and all their tasks?"):
+        session.delete(user)
+        session.commit()
+        print("User and their tasks deleted successfully.")
+    else:
+        print("Deletion cancelled.")
+
+def delete_task():
+    email = input("Enter the email of the user for task deletion: ")
+    user = get_user_by_email(email)
+    if not user:
+        print("No user found with this email.")
+        return
+    if not user.task:
+        print("This user has no tasks to delete.")
+        return
+    for task in user.task:
+        print(f"Task ID: {task.id}, Title: {task.title}")
+    try:
+        task_id = int(input("Enter the Task ID to delete: "))
+    except ValueError:
+        print("Invalid Task ID.")
+        return
+    task_to_delete = session.query(Task).filter_by(id=task_id, user_id=user.id).first()
+    if not task_to_delete:
+        print("No task found with this ID for the specified user.")
+        return
+    if confirm_action(f"Are you sure you want to delete task '{task_to_delete.title}'?"):
+        session.delete(task_to_delete)
+        session.commit()
+        print("Task deleted successfully.")
+    else:
+        print("Deletion cancelled.")
 
 #main function
 def main()->None:
@@ -82,7 +137,11 @@ def main()->None:
         "1" : add_user,
         "2" : add_task,
         "3" : query_users,
-        "4" : query_tasks
+        "4" : query_tasks,
+        "5" : update_user,
+        "6" : delete_user,
+        "7" : delete_task,
+        "8" : exit
     }
     while True:
         print("\nOptions:\n1. Add User\n2. Add Task\n3. Query Users\n4. Query Tasks\n5. Update User\n6. Delete User\n7. Delete Task\n8. Exit")
@@ -95,5 +154,6 @@ def main()->None:
             action()
         else:
             print("That is not an option")
+
 if __name__ == "__main__":
     main()
